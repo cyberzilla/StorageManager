@@ -141,6 +141,7 @@
     function executeAction(action, data = {}, callback) {
         const isRestricted = currentTabUrl.startsWith('chrome:') || currentTabUrl.startsWith('edge:') ||
             currentTabUrl.startsWith('about:') || currentTabUrl.startsWith('brave:') || currentTabUrl.startsWith('file:');
+
         if (isRestricted) { if (callback) callback({ error: 'RESTRICTED_PAGE' }); return; }
 
         if (currentType === 'C') {
@@ -149,6 +150,19 @@
             else if (action === 'remove') { CookieManager.remove(data.key); if(callback) callback(); }
             else if (action === 'clear') { CookieManager.clear(); if(callback) callback(); }
             else if (action === 'export' && callback) CookieManager.getAll((res) => callback(JSON.stringify(res, null, 4)));
+            // --- UPDATE: ENABLE COOKIE IMPORT ---
+            else if (action === 'import') {
+                try {
+                    const obj = JSON.parse(data.json);
+                    for (let key in obj) {
+                        // Import cookie sebagai session cookie di URL saat ini
+                        CookieManager.set(key, obj[key]);
+                    }
+                    if(callback) callback();
+                } catch(e) {
+                    if(callback) callback({error: e.message});
+                }
+            }
         } else {
             const msg = { type: currentType, what: action, ...data };
             chrome.scripting.executeScript({
@@ -172,8 +186,11 @@
             els.aboutView.classList.remove('hidden'); els.buttons.style.display = 'none'; els.table.style.display = 'none';
         } else {
             els.aboutView.classList.add('hidden'); els.buttons.style.display = 'flex'; els.table.style.display = 'block';
+
+            // --- UPDATE: UNHIDE BUTTONS FOR COOKIES ---
+            // Kode lama yang menyembunyikan tombol storage-only dihapus agar tombol muncul di Cookies
             const storageOnlyBtns = document.querySelectorAll('.storage-only');
-            storageOnlyBtns.forEach(el => el.style.display = currentType === 'C' ? 'none' : 'flex');
+            storageOnlyBtns.forEach(el => el.style.display = 'flex');
         }
     }
 
@@ -195,8 +212,7 @@
                 html = `<div class="empty-state"><div class="empty-icon-wrapper restricted">${icons.restricted}</div><p>Cannot access data on <br><strong>Browser System Page</strong></p></div>`;
             } else {
                 els.buttons.style.display = 'flex';
-                const storageOnlyBtns = document.querySelectorAll('.storage-only');
-                storageOnlyBtns.forEach(el => el.style.display = currentType === 'C' ? 'none' : 'flex');
+                // Buttons are always visible now (handled in updateUIState)
 
                 if (!data || Object.keys(data).length === 0) {
                     html = `<div class="empty-state"><div class="empty-icon-wrapper">${icons.empty}</div><p>No data found in <br><strong>${storageName}</strong></p></div>`;
@@ -250,13 +266,9 @@
         if (isHidden) { els.importSection.classList.remove('hidden'); els.importText.focus(); } else { els.importSection.classList.add('hidden'); }
     }
 
-    // --- UPDATED: RESET IMPORT (FIX CANCEL) ---
     function closeAndResetImport() {
         els.importSection.classList.add('hidden');
-        els.importText.value = '';
-        els.importFile.value = '';
-        els.fileNameText.textContent = 'Choose File';
-        els.importFileLabel.style = '';
+        els.importText.value = ''; els.importFile.value = ''; els.fileNameText.textContent = 'Choose File'; els.importFileLabel.style = '';
     }
 
     els.importFile.addEventListener('change', function() {
@@ -276,9 +288,7 @@
                 executeAction('import', {json: jsonString}, (res) => {
                     if(res && res.error) { showToast('Import Failed: ' + res.error, 'error'); }
                     else {
-                        closeAndResetImport(); // Use helper
-                        renderTable();
-                        showToast('Data imported successfully');
+                        closeAndResetImport(); renderTable(); showToast('Data imported successfully');
                     }
                 });
             } catch (e) { showToast('Invalid JSON Format', 'error'); }
@@ -306,7 +316,6 @@
     });
 
     els.btn.import.addEventListener('click', toggleImportSection);
-    // --- UPDATED: Gunakan fungsi reset untuk cancel ---
     els.btn.cancelImport.addEventListener('click', closeAndResetImport);
     els.btn.processImport.addEventListener('click', handleProcessImport);
 
