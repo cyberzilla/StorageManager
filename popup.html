@@ -1,52 +1,72 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Storage Manager</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <title>Storage Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 
-    <body>
-        <div id="main">
-            <header>
-                <div class="app-title">Storage Manager</div>
-                <div class="tabs">
-                    <button id="tab-local" class="tab-btn active">Local</button>
-                    <button id="tab-session" class="tab-btn">Session</button>
-                    <button id="tab-cookies" class="tab-btn">Cookies</button>
-                </div>
-            </header>
+<body>
+<div id="main">
+    <header>
+        <div class="app-title">Storage Manager</div>
+        <div class="tabs">
+            <button id="tab-local" class="tab-btn active">Local</button>
+            <button id="tab-session" class="tab-btn">Session</button>
+            <button id="tab-cookies" class="tab-btn">Cookies</button>
+        </div>
+    </header>
 
-            <form action="#" spellcheck="false">
-                <div id="buttons">
-                    <button type="button" id="add" class="action-btn primary">
-                        <span class="icon-plus">+</span> Add
-                    </button>
-                    <button type="button" id="reload" class="action-btn">Reload</button>
-                    <button type="button" id="copy" class="action-btn">Copy</button>
-                    <button type="button" id="download" class="action-btn storage-only">Export</button>
-                    <button type="button" id="import" class="action-btn storage-only">Import</button>
-                    
-                    <button type="button" id="clear" class="action-btn danger" style="margin-left: auto;">Clear</button>
-                </div>
+    <form action="#" spellcheck="false">
+        <div id="buttons">
+            <button type="button" id="add" class="action-btn primary">
+                <span class="icon-plus">+</span> Add
+            </button>
+            <button type="button" id="reload" class="action-btn">Reload</button>
+            <button type="button" id="copy" class="action-btn">Copy</button>
 
-                <div id="table">
+            <button type="button" id="download" class="action-btn storage-only">Export</button>
+            <button type="button" id="import" class="action-btn storage-only">Import</button>
+
+            <button type="button" id="clear" class="action-btn danger" style="margin-left: auto;">Clear</button>
+        </div>
+
+        <div id="import-section" class="import-panel hidden">
+            <div class="import-content">
+                <textarea id="import-text" placeholder='Paste JSON here... (e.g. {"key": "value"})'></textarea>
+
+                <div class="import-actions">
+                    <div class="file-upload">
+                        <label for="import-file" class="file-label">Or choose file...</label>
+                        <input type="file" id="import-file" accept=".json, .txt">
                     </div>
-            </form>
-        </div>
-
-        <div id="json">
-            <div class="json-header">
-                <span class="json-title">Value Viewer</span>
-                <button id="close-json" class="close-btn" title="Close">✕</button>
-            </div>
-            <div class="json-body">
-                <pre id="code"></pre>
+                    <div class="action-group">
+                        <button type="button" id="btn-cancel-import" class="action-btn">Cancel</button>
+                        <button type="button" id="btn-process-import" class="action-btn primary">Import Data</button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="loading" style="display: none;"></div>
+        <div id="table">
+        </div>
+    </form>
+</div>
 
-        <script src="script.js"></script>
-    </body>
+<div id="json" class="modal-overlay">
+    <div class="modal-window">
+        <div class="modal-header">
+            <span id="json-title-text" class="modal-title">Value Viewer</span>
+            <button id="close-json" class="close-btn" title="Close">✕</button>
+        </div>
+        <div class="modal-body">
+            <pre id="code"></pre>
+        </div>
+    </div>
+</div>
+
+<div id="loading" style="display: none;"></div>
+
+<script src="script.js"></script>
+</body>
 </html>
