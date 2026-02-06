@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Storage & Cookie Manager",
-  "version": "3.0",
+  "version": "1.0",
   "description": "A modern extension to manage LocalStorage, SessionStorage, and Cookies on Chromium-based browsers.",
   "icons": {
     "16": "img/16x16.png",
