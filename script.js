@@ -3,6 +3,8 @@
 
     // --- Config & State ---
     let currentType = localStorage.getItem('type') || 'L';
+    if(!['L','S','C','A'].includes(currentType)) currentType = 'L';
+
     let currentTabId = null;
     let currentTabUrl = null;
 
@@ -11,27 +13,39 @@
         tabs: {
             L: document.getElementById('tab-local'),
             S: document.getElementById('tab-session'),
-            C: document.getElementById('tab-cookies')
+            C: document.getElementById('tab-cookies'),
+            A: document.getElementById('tab-about')
         },
+        buttons: document.getElementById('buttons'),
         table: document.getElementById('table'),
-        // JSON Modal Elements
+        importSection: document.getElementById('import-section'),
+        aboutView: document.getElementById('about-view'),
+        appVersion: document.getElementById('app-version'),
+
         jsonModal: document.getElementById('json'),
         jsonCode: document.getElementById('code'),
         jsonTitle: document.getElementById('json-title-text'),
-        // Import Accordion Elements
-        importSection: document.getElementById('import-section'),
+
         importText: document.getElementById('import-text'),
         importFile: document.getElementById('import-file'),
-        // Buttons
+        importFileLabel: document.getElementById('import-file-label'),
+        fileNameText: document.getElementById('file-name-text'),
+
+        toastContainer: document.getElementById('toast-container'),
+        confirmModal: document.getElementById('confirm-modal'),
+        confirmTitle: document.getElementById('confirm-title'),
+        confirmMsg: document.getElementById('confirm-msg'),
+        confirmOk: document.getElementById('confirm-ok'),
+        confirmCancel: document.getElementById('confirm-cancel'),
+
         btn: {
             add: document.getElementById('add'),
             reload: document.getElementById('reload'),
             clear: document.getElementById('clear'),
             copy: document.getElementById('copy'),
-            import: document.getElementById('import'), // Toggles accordion
+            import: document.getElementById('import'),
             download: document.getElementById('download'),
             closeJson: document.getElementById('close-json'),
-            // Import Actions
             cancelImport: document.getElementById('btn-cancel-import'),
             processImport: document.getElementById('btn-process-import')
         }
@@ -45,18 +59,42 @@
         cross: `<svg xmlns="http://www.w3.org/2000/svg" class="icon-svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`
     };
 
-    // --- Injected Logic & Cookie Manager (Sama) ---
+    // --- UI HELPERS ---
+
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const iconSvg = type === 'success'
+            ? `<svg class="icon-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`
+            : `<svg class="icon-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`;
+        toast.innerHTML = `${iconSvg} <span>${message}</span>`;
+        els.toastContainer.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('fading');
+            toast.addEventListener('animationend', () => toast.remove());
+        }, 3000);
+    }
+
+    let confirmCallback = null;
+    function showConfirm(title, message, callback) {
+        els.confirmTitle.textContent = title;
+        els.confirmMsg.textContent = message;
+        confirmCallback = callback;
+        els.confirmModal.style.display = 'flex';
+    }
+    function hideConfirm() { els.confirmModal.style.display = 'none'; confirmCallback = null; }
+    els.confirmOk.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirm(); });
+    els.confirmCancel.addEventListener('click', hideConfirm);
+
+    // --- Logic ---
     function injectedFunction(msg) {
         function getStorage() {
             var obj = {};
             var storage = msg.type === 'L' ? window.localStorage : window.sessionStorage;
             if (!storage) return;
-            for (var i in storage) {
-                if (storage.hasOwnProperty(i)) obj[i] = storage.getItem(i);
-            }
+            for (var i in storage) { if (storage.hasOwnProperty(i)) obj[i] = storage.getItem(i); }
             return obj;
         }
-
         var storage = msg.type === 'L' ? window.localStorage : window.sessionStorage;
         if (!storage) return undefined;
 
@@ -73,7 +111,7 @@
                 try {
                     var obj = JSON.parse(msg.json);
                     for (var i in obj) if (obj.hasOwnProperty(i)) storage.setItem(i, obj[i]);
-                } catch(e) {}
+                } catch(e) { return {error: e.message}; }
                 break;
         }
     }
@@ -91,9 +129,7 @@
             chrome.cookies.set({ url: currentTabUrl, name: key, value: value });
             setTimeout(renderTable, 100);
         },
-        remove: function(key) {
-            chrome.cookies.remove({ url: currentTabUrl, name: key }, renderTable);
-        },
+        remove: function(key) { chrome.cookies.remove({ url: currentTabUrl, name: key }, renderTable); },
         clear: function() {
             chrome.cookies.getAll({ url: currentTabUrl }, function(cookies) {
                 cookies.forEach(c => chrome.cookies.remove({ url: currentTabUrl, name: c.name }));
@@ -104,20 +140,16 @@
 
     function getActiveTab(callback) {
         chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-            if (tabs && tabs[0]) {
-                currentTabId = tabs[0].id;
-                currentTabUrl = tabs[0].url;
-                callback();
-            }
+            if (tabs && tabs[0]) { currentTabId = tabs[0].id; currentTabUrl = tabs[0].url; callback(); }
         });
     }
 
     function executeAction(action, data = {}, callback) {
         if (currentType === 'C') {
             if (action === 'get') CookieManager.getAll(callback);
-            else if (action === 'set') CookieManager.set(data.key, data.value, data.oldKey);
-            else if (action === 'remove') CookieManager.remove(data.key);
-            else if (action === 'clear') CookieManager.clear();
+            else if (action === 'set') { CookieManager.set(data.key, data.value, data.oldKey); if(callback) callback(); }
+            else if (action === 'remove') { CookieManager.remove(data.key); if(callback) callback(); }
+            else if (action === 'clear') { CookieManager.clear(); if(callback) callback(); }
             else if (action === 'export' && callback) CookieManager.getAll((res) => callback(JSON.stringify(res, null, 4)));
         } else {
             const msg = { type: currentType, what: action, ...data };
@@ -132,19 +164,20 @@
         }
     }
 
-    // --- Rendering ---
     function updateUIState() {
-        Object.keys(els.tabs).forEach(k => {
-            els.tabs[k].classList.toggle('active', k === currentType);
-        });
-        const storageOnlyBtns = document.querySelectorAll('.storage-only');
-        storageOnlyBtns.forEach(el => el.style.display = currentType === 'C' ? 'none' : 'flex');
-
-        // Hide import section on tab switch
+        Object.keys(els.tabs).forEach(k => els.tabs[k].classList.toggle('active', k === currentType));
         els.importSection.classList.add('hidden');
+        if (currentType === 'A') {
+            els.aboutView.classList.remove('hidden'); els.buttons.style.display = 'none'; els.table.style.display = 'none';
+        } else {
+            els.aboutView.classList.add('hidden'); els.buttons.style.display = 'flex'; els.table.style.display = 'block';
+            const storageOnlyBtns = document.querySelectorAll('.storage-only');
+            storageOnlyBtns.forEach(el => el.style.display = currentType === 'C' ? 'none' : 'flex');
+        }
     }
 
     function renderTable() {
+        if (currentType === 'A') return;
         executeAction('get', {}, function(data) {
             let html = '';
             if (!data || Object.keys(data).length === 0) {
@@ -176,13 +209,11 @@
         });
     }
 
-    // --- Inline Add Row ---
     function showAddRow() {
         if (document.querySelector('.new-row')) { document.querySelector('#new-key').focus(); return; }
         const emptyMsg = document.getElementById('empty-msg');
-        if (emptyMsg) {
-            els.table.innerHTML = `<table><thead><tr><th style="width: 35%">Key</th><th style="width: 50%">Value</th><th style="width: 15%; text-align:center">Action</th></tr></thead><tbody></tbody></table>`;
-        }
+        if (emptyMsg) els.table.innerHTML = `<table><thead><tr><th style="width: 35%">Key</th><th style="width: 50%">Value</th><th style="width: 15%; text-align:center">Action</th></tr></thead><tbody></tbody></table>`;
+
         const tbody = els.table.querySelector('tbody');
         const tr = document.createElement('tr');
         tr.className = 'new-row';
@@ -194,153 +225,146 @@
                 <span class="td-icon cancel-new" title="Cancel">${icons.cross}</span>
             </td>`;
         tbody.insertBefore(tr, tbody.firstChild);
+
         const newKeyInput = document.getElementById('new-key');
+        const newValInput = document.getElementById('new-val');
+
         newKeyInput.focus();
+
+        newKeyInput.addEventListener('input', function() {
+            this.style.borderColor = '';
+        });
+
         const handleEnter = (e) => {
             if (e.key === 'Enter') saveNewRow();
             if (e.key === 'Escape') renderTable();
         };
+
         newKeyInput.addEventListener('keyup', handleEnter);
-        document.getElementById('new-val').addEventListener('keyup', handleEnter);
+        newValInput.addEventListener('keyup', handleEnter);
     }
 
     function saveNewRow() {
-        const key = document.getElementById('new-key').value.trim();
-        const val = document.getElementById('new-val').value;
-        if (!key) return;
-        executeAction('set', {key: key, value: val}, renderTable);
-    }
+        const keyInput = document.getElementById('new-key');
+        const valInput = document.getElementById('new-val');
 
-    // --- Helpers ---
-    function htmlEscape(str) {
-        return String(str).replace(/[&<>"']/g, function(m) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        // Safety check jika row sudah hilang
+        if (!keyInput || !valInput) return;
+
+        const key = keyInput.value.trim();
+        const val = valInput.value;
+
+        if (!key) {
+            showToast('Key name cannot be empty!', 'error'); // Tampilkan Error
+            keyInput.style.borderColor = 'var(--danger)';    // Beri border merah
+            keyInput.focus();                                // Kembalikan fokus
+            return;
+        }
+
+        executeAction('set', {key: key, value: val}, () => {
+            renderTable();
+            showToast('Item added successfully'); // Tampilkan Success
         });
     }
 
+    function htmlEscape(str) { return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
     function syntaxHighlight(json) {
         return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
             let cls = 'number';
-            if (/^"/.test(match)) {
-                if (/:$/.test(match)) cls = 'key'; else cls = 'string';
-            } else if (/true|false/.test(match)) cls = 'boolean'; else if (/null/.test(match)) cls = 'null';
+            if (/^"/.test(match)) { if (/:$/.test(match)) cls = 'key'; else cls = 'string'; }
+            else if (/true|false/.test(match)) cls = 'boolean'; else if (/null/.test(match)) cls = 'null';
             return '<span class="' + cls + '">' + htmlEscape(match) + '</span>';
         });
     }
+    function parseDeepJSON(str) { try { const o = JSON.parse(str); if (o && typeof o === 'object') return o; } catch(e) {} return str; }
 
-    function parseDeepJSON(str) {
-        try { const o = JSON.parse(str); if (o && typeof o === 'object') return o; } catch(e) {}
-        return str;
-    }
-
-    // --- IMPORT LOGIC (Accordion) ---
     function toggleImportSection() {
         const isHidden = els.importSection.classList.contains('hidden');
-        if (isHidden) {
-            els.importSection.classList.remove('hidden');
-            els.importText.focus();
-        } else {
-            els.importSection.classList.add('hidden');
-        }
+        if (isHidden) { els.importSection.classList.remove('hidden'); els.importText.focus(); } else { els.importSection.classList.add('hidden'); }
     }
+
+    // File Input Logic
+    els.importFile.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            els.fileNameText.textContent = this.files[0].name;
+            els.importFileLabel.style.borderColor = 'var(--primary)'; els.importFileLabel.style.color = 'var(--primary)';
+        } else {
+            els.fileNameText.textContent = "Choose File"; els.importFileLabel.style = '';
+        }
+    });
 
     function handleProcessImport() {
         const file = els.importFile.files[0];
         const text = els.importText.value.trim();
-
         const processJSON = (jsonString) => {
             try {
-                JSON.parse(jsonString); // Validate
-                executeAction('import', {json: jsonString}, () => {
-                    els.importSection.classList.add('hidden'); // Close accordion
-                    renderTable();
-                    els.importText.value = ''; // Reset
-                    els.importFile.value = '';
+                JSON.parse(jsonString);
+                executeAction('import', {json: jsonString}, (res) => {
+                    if(res && res.error) { showToast('Import Failed: ' + res.error, 'error'); }
+                    else {
+                        els.importSection.classList.add('hidden'); renderTable(); showToast('Data imported successfully');
+                        els.importText.value = ''; els.importFile.value = ''; els.fileNameText.textContent = 'Choose File'; els.importFileLabel.style = '';
+                    }
                 });
-            } catch (e) {
-                alert('Invalid JSON Format!\n' + e.message);
-            }
+            } catch (e) { showToast('Invalid JSON Format', 'error'); }
         };
-
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => processJSON(e.target.result);
-            reader.readAsText(file);
-        } else if (text) {
-            processJSON(text);
-        } else {
-            alert('Please paste JSON text or select a file.');
-        }
+        if (file) { const reader = new FileReader(); reader.onload = (e) => processJSON(e.target.result); reader.readAsText(file); }
+        else if (text) { processJSON(text); } else { showToast('Please paste JSON text or select a file', 'error'); }
     }
 
     // --- Event Listeners ---
-    ['L', 'S', 'C'].forEach(t => {
-        els.tabs[t].addEventListener('click', () => {
-            currentType = t; localStorage.setItem('type', t); updateUIState(); renderTable();
-        });
-    });
-
-    els.btn.reload.addEventListener('click', renderTable);
+    ['L', 'S', 'C', 'A'].forEach(t => { els.tabs[t].addEventListener('click', () => { currentType = t; localStorage.setItem('type', t); updateUIState(); renderTable(); }); });
+    els.btn.reload.addEventListener('click', () => { renderTable(); showToast('Data reloaded'); });
     els.btn.add.addEventListener('click', showAddRow);
-    els.btn.clear.addEventListener('click', () => { if(confirm('Delete ALL data?')) executeAction('clear', {}, renderTable); });
-    els.btn.copy.addEventListener('click', () => { executeAction('export', {}, (res) => { if(res) navigator.clipboard.writeText(res); }); });
-
-    // Download
+    els.btn.clear.addEventListener('click', () => {
+        showConfirm('Clear All Data?', `This will delete ALL items in ${currentType === 'L' ? 'Local Storage' : (currentType === 'S' ? 'Session Storage' : 'Cookies')}.`,
+            () => { executeAction('clear', {}, () => { renderTable(); showToast('All data cleared'); }); });
+    });
+    els.btn.copy.addEventListener('click', () => { executeAction('export', {}, (res) => { if(res) { navigator.clipboard.writeText(res); showToast('Copied to clipboard'); } else { showToast('Nothing to copy', 'error'); } }); });
     els.btn.download.addEventListener('click', () => {
         let host = 'data'; try { host = new URL(currentTabUrl).hostname; } catch(e){}
         const dateStr = new Date().toISOString().slice(0,19).replace(/:/g,'-');
         const filename = `${host}-${currentType}-${dateStr}.json`;
         executeAction('export', {}, (res) => {
-            if(!res) return;
-            const blob = new Blob([res], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); setTimeout(() => document.body.removeChild(a), 100);
+            if(!res) { showToast('No data to export', 'error'); return; }
+            const blob = new Blob([res], {type: 'application/json'}); const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => document.body.removeChild(a), 100);
+            showToast('Export successful');
         });
     });
-
-    // Import Events (Accordion)
     els.btn.import.addEventListener('click', toggleImportSection);
     els.btn.cancelImport.addEventListener('click', toggleImportSection);
     els.btn.processImport.addEventListener('click', handleProcessImport);
 
-    // Table Actions
     els.table.addEventListener('input', (e) => {
         if(e.target.tagName !== 'INPUT' || e.target.closest('.new-row')) return;
-        const input = e.target;
-        const tr = input.closest('tr');
+        const input = e.target; const tr = input.closest('tr');
         const isValue = input.parentElement.classList.contains('td-value');
         const keyInput = tr.querySelector('.td-nome input');
         if (!isValue && currentType === 'C') return;
-        const oldKey = keyInput.dataset.key;
-        const key = keyInput.value;
-        const value = tr.querySelector('.td-value input').value;
+        const oldKey = keyInput.dataset.key; const key = keyInput.value; const value = tr.querySelector('.td-value input').value;
         if (!isValue) keyInput.dataset.key = key;
         executeAction('set', {oldKey, key, value});
     });
 
     els.table.addEventListener('click', (e) => {
-        const icon = e.target.closest('.td-icon');
-        if(!icon) return;
-        const tr = icon.closest('tr');
+        const icon = e.target.closest('.td-icon'); if(!icon) return; const tr = icon.closest('tr');
         if (icon.classList.contains('minus')) {
             const key = tr.querySelector('.td-nome input').value;
-            if(confirm(`Delete "${key}"?`)) executeAction('remove', {key}, () => { tr.remove(); if(!els.table.querySelector('tbody tr')) renderTable(); });
+            showConfirm('Delete Item?', `Are you sure you want to delete "${key}"?`, () => {
+                executeAction('remove', {key}, () => { tr.remove(); if(!els.table.querySelector('tbody tr')) renderTable(); showToast('Item deleted'); });
+            });
         } else if (icon.classList.contains('open')) {
-            const key = tr.querySelector('.td-nome input').value;
-            let val = tr.querySelector('.td-value input').value;
-
+            const key = tr.querySelector('.td-nome input').value; let val = tr.querySelector('.td-value input').value;
             els.jsonTitle.textContent = "Value: " + key;
-            let json = parseDeepJSON(val);
-            let displayVal = (typeof json === 'object') ? syntaxHighlight(JSON.stringify(json, null, 4)) : htmlEscape(val);
-            els.jsonCode.innerHTML = displayVal;
-            els.jsonModal.style.display = 'flex';
-        } else if (icon.classList.contains('save-new')) saveNewRow();
-        else if (icon.classList.contains('cancel-new')) renderTable();
+            let json = parseDeepJSON(val); let displayVal = (typeof json === 'object') ? syntaxHighlight(JSON.stringify(json, null, 4)) : htmlEscape(val);
+            els.jsonCode.innerHTML = displayVal; els.jsonModal.style.display = 'flex';
+        } else if (icon.classList.contains('save-new')) saveNewRow(); else if (icon.classList.contains('cancel-new')) renderTable();
     });
 
     els.btn.closeJson.addEventListener('click', () => { els.jsonModal.style.display = 'none'; });
 
+    const manifest = chrome.runtime.getManifest(); els.appVersion.textContent = manifest.version;
     getActiveTab(() => { updateUIState(); renderTable(); });
 
 })(window, document, chrome);

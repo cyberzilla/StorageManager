@@ -14,6 +14,7 @@
             <button id="tab-local" class="tab-btn active">Local</button>
             <button id="tab-session" class="tab-btn">Session</button>
             <button id="tab-cookies" class="tab-btn">Cookies</button>
+            <button id="tab-about" class="tab-btn">About</button>
         </div>
     </header>
 
@@ -36,10 +37,14 @@
                 <textarea id="import-text" placeholder='Paste JSON here... (e.g. {"key": "value"})'></textarea>
 
                 <div class="import-actions">
-                    <div class="file-upload">
-                        <label for="import-file" class="file-label">Or choose file...</label>
+                    <div class="file-upload-wrapper">
+                        <label for="import-file" id="import-file-label" class="action-btn file-upload-label">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon-svg" style="flex-shrink:0; margin-right:5px;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            <span id="file-name-text" class="file-name-span">Choose File</span>
+                        </label>
                         <input type="file" id="import-file" accept=".json, .txt">
                     </div>
+
                     <div class="action-group">
                         <button type="button" id="btn-cancel-import" class="action-btn">Cancel</button>
                         <button type="button" id="btn-process-import" class="action-btn primary">Import Data</button>
@@ -49,6 +54,26 @@
         </div>
 
         <div id="table">
+        </div>
+
+        <div id="about-view" class="hidden">
+            <div class="about-container">
+                <img src="img/128x128.png" alt="Logo" class="about-logo">
+                <h2>Storage Manager</h2>
+                <p class="version">Version <span id="app-version">...</span></p>
+
+                <div class="creator-info">
+                    <p>Created by</p>
+                    <h3>Abu Dzakiyyah</h3>
+                </div>
+
+                <a href="https://github.com/cyberzilla/StorageManager" target="_blank" class="github-card">
+                    <svg class="github-icon" height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    <span>View on GitHub</span>
+                </a>
+            </div>
         </div>
     </form>
 </div>
@@ -65,7 +90,21 @@
     </div>
 </div>
 
-<div id="loading" style="display: none;"></div>
+<div id="confirm-modal">
+    <div class="confirm-box">
+        <div class="confirm-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <div class="confirm-title" id="confirm-title">Are you sure?</div>
+        <div class="confirm-text" id="confirm-msg">This action cannot be undone.</div>
+        <div class="confirm-actions">
+            <button id="confirm-cancel" class="action-btn">Cancel</button>
+            <button id="confirm-ok" class="action-btn danger">Yes, Delete</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container"></div>
 
 <script src="script.js"></script>
 </body>
