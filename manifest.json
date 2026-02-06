@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Storage & Cookie Manager",
+  "version": "3.0",
+  "description": "Manage LocalStorage, SessionStorage, and Cookies",
+  "icons": {
+    "16": "img/16x16.png",
+    "48": "img/48x48.png",
+    "128": "img/128x128.png"
+  },
+  "action": {
+    "default_icon": "img/128x128.png",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "cookies"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

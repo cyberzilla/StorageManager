@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Storage Manager</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+        <div id="main">
+            <header>
+                <div class="app-title">Storage Manager</div>
+                <div class="tabs">
+                    <button id="tab-local" class="tab-btn active">Local</button>
+                    <button id="tab-session" class="tab-btn">Session</button>
+                    <button id="tab-cookies" class="tab-btn">Cookies</button>
+                </div>
+            </header>
+
+            <form action="#" spellcheck="false">
+                <div id="buttons">
+                    <button type="button" id="add" class="action-btn primary">
+                        <span class="icon-plus">+</span> Add
+                    </button>
+                    <button type="button" id="reload" class="action-btn">Reload</button>
+                    <button type="button" id="copy" class="action-btn">Copy</button>
+                    <button type="button" id="download" class="action-btn storage-only">Export</button>
+                    <button type="button" id="import" class="action-btn storage-only">Import</button>
+                    
+                    <button type="button" id="clear" class="action-btn danger" style="margin-left: auto;">Clear</button>
+                </div>
+
+                <div id="table">
+                    </div>
+            </form>
+        </div>
+
+        <div id="json">
+            <div class="json-header">
+                <span class="json-title">Value Viewer</span>
+                <button id="close-json" class="close-btn" title="Close">✕</button>
+            </div>
+            <div class="json-body">
+                <pre id="code"></pre>
+            </div>
+        </div>
+
+        <div id="loading" style="display: none;"></div>
+
+        <script src="script.js"></script>
+    </body>
+</html>
