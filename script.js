@@ -86,7 +86,7 @@
     els.confirmOk.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirm(); });
     els.confirmCancel.addEventListener('click', hideConfirm);
 
-    // --- Logic ---
+    // --- Core Logic ---
     function injectedFunction(msg) {
         function getStorage() {
             var obj = {};
@@ -213,7 +213,6 @@
         if (document.querySelector('.new-row')) { document.querySelector('#new-key').focus(); return; }
         const emptyMsg = document.getElementById('empty-msg');
         if (emptyMsg) els.table.innerHTML = `<table><thead><tr><th style="width: 35%">Key</th><th style="width: 50%">Value</th><th style="width: 15%; text-align:center">Action</th></tr></thead><tbody></tbody></table>`;
-
         const tbody = els.table.querySelector('tbody');
         const tr = document.createElement('tr');
         tr.className = 'new-row';
@@ -225,21 +224,11 @@
                 <span class="td-icon cancel-new" title="Cancel">${icons.cross}</span>
             </td>`;
         tbody.insertBefore(tr, tbody.firstChild);
-
         const newKeyInput = document.getElementById('new-key');
         const newValInput = document.getElementById('new-val');
-
         newKeyInput.focus();
-
-        newKeyInput.addEventListener('input', function() {
-            this.style.borderColor = '';
-        });
-
-        const handleEnter = (e) => {
-            if (e.key === 'Enter') saveNewRow();
-            if (e.key === 'Escape') renderTable();
-        };
-
+        newKeyInput.addEventListener('input', function() { this.style.borderColor = ''; });
+        const handleEnter = (e) => { if (e.key === 'Enter') saveNewRow(); if (e.key === 'Escape') renderTable(); };
         newKeyInput.addEventListener('keyup', handleEnter);
         newValInput.addEventListener('keyup', handleEnter);
     }
@@ -247,24 +236,11 @@
     function saveNewRow() {
         const keyInput = document.getElementById('new-key');
         const valInput = document.getElementById('new-val');
-
-        // Safety check jika row sudah hilang
         if (!keyInput || !valInput) return;
-
         const key = keyInput.value.trim();
         const val = valInput.value;
-
-        if (!key) {
-            showToast('Key name cannot be empty!', 'error'); // Tampilkan Error
-            keyInput.style.borderColor = 'var(--danger)';    // Beri border merah
-            keyInput.focus();                                // Kembalikan fokus
-            return;
-        }
-
-        executeAction('set', {key: key, value: val}, () => {
-            renderTable();
-            showToast('Item added successfully'); // Tampilkan Success
-        });
+        if (!key) { showToast('Key name cannot be empty!', 'error'); keyInput.style.borderColor = 'var(--danger)'; keyInput.focus(); return; }
+        executeAction('set', {key: key, value: val}, () => { renderTable(); showToast('Item added successfully'); });
     }
 
     function htmlEscape(str) { return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
